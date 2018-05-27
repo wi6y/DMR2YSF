@@ -43,10 +43,11 @@ m_dstPort(0U),
 m_localAddress(),
 m_localPort(0U),
 m_daemon(false),
-m_dmrId(0U),
-m_dmrNetworkAddress(),
-m_dmrNetworkPort(0U),
-m_dmrNetworkLocal(0U),
+m_dmrRptAddress(),
+m_dmrRptPort(0U),
+m_dmrLocalAddress(),
+m_dmrLocalPort(0U),
+m_dmrDebug(false),
 m_dmrIdLookupFile(),
 m_dmrIdLookupTime(0U),
 m_logDisplayLevel(0U),
@@ -111,9 +112,9 @@ bool CConf::read()
 			for (unsigned int i = 0U; value[i] != 0; i++)
 				value[i] = ::toupper(value[i]);
 			m_callsign = value;
-		} else if (::strcmp(key, "DstAddress") == 0)
+		} else if (::strcmp(key, "GatewayAddress") == 0)
 			m_dstAddress = value;
-		else if (::strcmp(key, "DstPort") == 0)
+		else if (::strcmp(key, "GatewayPort") == 0)
 			m_dstPort = (unsigned int)::atoi(value);
 		else if (::strcmp(key, "LocalAddress") == 0)
 			m_localAddress = value;
@@ -122,16 +123,16 @@ bool CConf::read()
 		else if (::strcmp(key, "Daemon") == 0)
 			m_daemon = ::atoi(value) == 1;
 	} else if (section == SECTION_DMR_NETWORK) {
-		if (::strcmp(key, "Id") == 0)
-			m_dmrId = (unsigned int)::atoi(value);
-		else if (::strcmp(key, "Address") == 0)
-			m_dmrNetworkAddress = value;
-		else if (::strcmp(key, "Port") == 0)
-			m_dmrNetworkPort = (unsigned int)::atoi(value);
-		else if (::strcmp(key, "Local") == 0)
-			m_dmrNetworkLocal = (unsigned int)::atoi(value);
+		if (::strcmp(key, "RptAddress") == 0)
+			m_dmrRptAddress = value;
+		else if (::strcmp(key, "RptPort") == 0)
+			m_dmrRptPort = (unsigned int)::atoi(value);
+		else if (::strcmp(key, "LocalAddress") == 0)
+			m_dmrLocalAddress = value;
+		else if (::strcmp(key, "LocalPort") == 0)
+			m_dmrLocalPort = (unsigned int)::atoi(value);
 		else if (::strcmp(key, "Debug") == 0)
-			m_dmrNetworkDebug = ::atoi(value) == 1;
+			m_dmrDebug = ::atoi(value) == 1;
 	} else if (section == SECTION_DMRID_LOOKUP) {
 		if (::strcmp(key, "File") == 0)
 			m_dmrIdLookupFile = value;
@@ -184,29 +185,29 @@ bool CConf::getDaemon() const
 	return m_daemon;
 }
 
-unsigned int CConf::getDMRId() const
+std::string CConf::getDMRRptAddress() const
 {
-	return m_dmrId;
+	return m_dmrRptAddress;
 }
 
-std::string CConf::getDMRNetworkAddress() const
+unsigned int CConf::getDMRRptPort() const
 {
-	return m_dmrNetworkAddress;
+	return m_dmrRptPort;
 }
 
-unsigned int CConf::getDMRNetworkPort() const
+std::string CConf::getDMRLocalAddress() const
 {
-	return m_dmrNetworkPort;
+	return m_dmrLocalAddress;
 }
 
-unsigned int CConf::getDMRNetworkLocal() const
+unsigned int CConf::getDMRLocalPort() const
 {
-	return m_dmrNetworkLocal;
+	return m_dmrLocalPort;
 }
 
-bool CConf::getDMRNetworkDebug() const
+bool CConf::getDMRDebug() const
 {
-	return m_dmrNetworkDebug;
+	return m_dmrDebug;
 }
 
 std::string CConf::getDMRIdLookupFile() const

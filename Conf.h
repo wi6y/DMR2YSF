@@ -40,11 +40,11 @@ public:
   bool         getDaemon() const;
   
   // The DMR Network section
-  unsigned int getDMRId() const;
-  std::string  getDMRNetworkAddress() const;
-  unsigned int getDMRNetworkPort() const;
-  unsigned int getDMRNetworkLocal() const;
-  bool         getDMRNetworkDebug() const;
+  std::string  getDMRRptAddress() const;
+  unsigned int getDMRRptPort() const;
+  std::string  getDMRLocalAddress() const;
+  unsigned int getDMRLocalPort() const;
+  bool         getDMRDebug() const;
 
   // The DMR Id section
   std::string  getDMRIdLookupFile() const;
@@ -65,11 +65,11 @@ private:
   unsigned int m_localPort;
   bool         m_daemon;
   
-  unsigned int m_dmrId;
-  std::string  m_dmrNetworkAddress;
-  unsigned int m_dmrNetworkPort;
-  unsigned int m_dmrNetworkLocal;
-  bool         m_dmrNetworkDebug;
+  std::string  m_dmrRptAddress;
+  unsigned int m_dmrRptPort;
+  std::string  m_dmrLocalAddress;
+  unsigned int m_dmrLocalPort;
+  bool         m_dmrDebug;
 
   std::string  m_dmrIdLookupFile;
   unsigned int m_dmrIdLookupTime;

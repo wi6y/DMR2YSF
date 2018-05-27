@@ -22,7 +22,7 @@
 
 #include "DMRDefines.h"
 #include "ModeConv.h"
-#include "DMRNetwork.h"
+#include "MMDVMNetwork.h"
 #include "DMREmbeddedData.h"
 #include "DMRLC.h"
 #include "DMRFullLC.h"
@@ -55,12 +55,11 @@ public:
 private:
 	std::string      m_callsign;
 	CConf            m_conf;
-	CDMRNetwork*     m_dmrNetwork;
+	CMMDVMNetwork*   m_dmrNetwork;
 	CYSFNetwork*     m_ysfNetwork;
 	CDMRLookup*      m_lookup;
 	CModeConv        m_conv;
 	unsigned int     m_colorcode;
-	unsigned int     m_srcHS;
 	unsigned int     m_srcid;
 	unsigned int     m_defsrcid;
 	unsigned int     m_dstid;
@@ -76,9 +75,13 @@ private:
 	CDMREmbeddedData m_EmbeddedLC;
 	FLCO             m_dmrflco;
 	bool             m_dmrinfo;
+	unsigned char*   m_config;
+	unsigned int     m_configLen;
 
 	unsigned int findYSFID(std::string cs, bool showdst);
 	std::string getSrcYSF(const unsigned char* source);
+	bool createMMDVM();
+
 };
 
 #endif

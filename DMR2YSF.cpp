@@ -50,13 +50,13 @@ const char* DEFAULT_INI_FILE = "/etc/DMR2YSF.ini";
 #include <clocale>
 #include <cctype>
 
-int end = 0;
+static bool m_killed = false;
 
 #if !defined(_WIN32) && !defined(_WIN64)
 void sig_handler(int signo)
 {
 	if (signo == SIGTERM) {
-		end = 1;
+		m_killed = true;
 		::fprintf(stdout, "Received SIGTERM\n");
 	}
 }
@@ -102,10 +102,14 @@ m_dmrNetwork(NULL),
 m_dmrLastDT(0U),
 m_dmrFrames(0U),
 m_ysfFrames(0U),
-m_dmrinfo(false)
+m_dmrinfo(false),
+m_config(NULL),
+m_configLen(0U)
 {
 	::memset(m_ysfFrame, 0U, 200U);
 	::memset(m_dmrFrame, 0U, 50U);
+
+	m_config = new unsigned char[400U];
 }
 
 CDMR2YSF::~CDMR2YSF()
@@ -195,13 +199,12 @@ int CDMR2YSF::run()
 
 	m_callsign = m_conf.getCallsign();
 
-	bool debug               = m_conf.getDMRNetworkDebug();
 	in_addr dstAddress       = CUDPSocket::lookup(m_conf.getDstAddress());
 	unsigned int dstPort     = m_conf.getDstPort();
 	std::string localAddress = m_conf.getLocalAddress();
 	unsigned int localPort   = m_conf.getLocalPort();
 
-	m_ysfNetwork = new CYSFNetwork(localAddress, localPort, m_callsign, debug);
+	m_ysfNetwork = new CYSFNetwork(localAddress, localPort, m_callsign, false);
 	m_ysfNetwork->setDestination(dstAddress, dstPort);
 
 	ret = m_ysfNetwork->open();
@@ -211,12 +214,29 @@ int CDMR2YSF::run()
 		return 1;
 	}
 
-/*	ret = createDMRNetwork();
-	if (!ret) {
-		::LogError("Cannot open DMR Network");
-		::LogFinalise();
+	ret = createMMDVM();
+	if (!ret)
 		return 1;
-	}*/
+
+	LogMessage("Waiting for MMDVM to connect.....");
+
+	while (!m_killed) {
+		m_configLen = m_dmrNetwork->getConfig(m_config);
+		if (m_configLen > 0U && m_dmrNetwork->getId() > 1000U)
+			break;
+
+		m_dmrNetwork->clock(10U);
+
+		CThread::sleep(10U);
+	}
+
+	if (m_killed) {
+		m_dmrNetwork->close();
+		delete m_dmrNetwork;
+		return 0;
+	}
+
+	LogMessage("MMDVM has connected");
 	
 	std::string lookupFile  = m_conf.getDMRIdLookupFile();
 	unsigned int reloadTime = m_conf.getDMRIdLookupTime();
@@ -247,7 +267,7 @@ int CDMR2YSF::run()
 
 	LogMessage("Starting DMR2YSF-%s", VERSION);
 
-	for (; end == 0;) {
+	for (; m_killed == 0;) {
 		unsigned char buffer[2000U];
 
 		CDMRData tx_dmrdata;
@@ -458,7 +478,6 @@ int CDMR2YSF::run()
 					LogMessage("DMR received end of voice transmission, %.1f seconds", float(m_dmrFrames) / 16.667F);
 
 					m_conv.putDMREOT();
-					m_dmrNetwork->reset(2U);
 					networkWatchdog.stop();
 					m_dmrFrames = 0U;
 					m_dmrinfo = false;
@@ -518,7 +537,6 @@ int CDMR2YSF::run()
 				networkWatchdog.clock(ms);
 				if (networkWatchdog.hasExpired()) {
 					LogDebug("Network watchdog has expired, %.1f seconds", float(m_dmrFrames) / 16.667F);
-					m_dmrNetwork->reset(2U);
 					networkWatchdog.stop();
 					m_dmrFrames = 0U;
 					m_dmrinfo = false;
@@ -533,7 +551,7 @@ int CDMR2YSF::run()
 
 			if(ysfFrameType == TAG_HEADER) {
 				ysf_cnt = 0U;
-
+				LogMessage("YSF send Header");
 				::memcpy(m_ysfFrame + 0U, "YSFD", 4U);
 				::memcpy(m_ysfFrame + 4U, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
 				::memcpy(m_ysfFrame + 14U, m_netSrc.c_str(), YSF_CALLSIGN_LENGTH);
@@ -569,6 +587,7 @@ int CDMR2YSF::run()
 				ysfWatch.start();
 			}
 			else if (ysfFrameType == TAG_EOT) {
+				LogMessage("YSF send EOT");
 				::memcpy(m_ysfFrame + 0U, "YSFD", 4U);
 				::memcpy(m_ysfFrame + 4U, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
 				::memcpy(m_ysfFrame + 14U, m_netSrc.c_str(), YSF_CALLSIGN_LENGTH);
@@ -601,6 +620,7 @@ int CDMR2YSF::run()
 				m_ysfNetwork->write(m_ysfFrame);
 			}
 			else if (ysfFrameType == TAG_DATA) {
+				LogMessage("YSF send DATA");
 				CYSFFICH fich;
 				CYSFPayload ysfPayload;
 
@@ -739,4 +759,30 @@ std::string CDMR2YSF::getSrcYSF(const unsigned char* buffer)
 	trimmed.erase(std::find_if(trimmed.rbegin(), trimmed.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), trimmed.end());
 	
 	return trimmed;
+}
+
+bool CDMR2YSF::createMMDVM()
+{
+	std::string rptAddress   = m_conf.getDMRRptAddress();
+	unsigned int rptPort     = m_conf.getDMRRptPort();
+	std::string localAddress = m_conf.getDMRLocalAddress();
+	unsigned int localPort   = m_conf.getDMRLocalPort();
+	bool debug               = m_conf.getDMRDebug();
+
+	LogInfo("MMDVM Network Parameters");
+	LogInfo("    Rpt Address: %s", rptAddress.c_str());
+	LogInfo("    Rpt Port: %u", rptPort);
+	LogInfo("    Local Address: %s", localAddress.c_str());
+	LogInfo("    Local Port: %u", localPort);
+
+	m_dmrNetwork = new CMMDVMNetwork(rptAddress, rptPort, localAddress, localPort, debug);
+
+	bool ret = m_dmrNetwork->open();
+	if (!ret) {
+		delete m_dmrNetwork;
+		m_dmrNetwork = NULL;
+		return false;
+	}
+
+	return true;
 }
