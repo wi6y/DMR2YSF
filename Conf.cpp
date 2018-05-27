@@ -43,6 +43,7 @@ m_dstPort(0U),
 m_localAddress(),
 m_localPort(0U),
 m_daemon(false),
+m_dmrId(0U),
 m_dmrRptAddress(),
 m_dmrRptPort(0U),
 m_dmrLocalAddress(),
@@ -123,7 +124,9 @@ bool CConf::read()
 		else if (::strcmp(key, "Daemon") == 0)
 			m_daemon = ::atoi(value) == 1;
 	} else if (section == SECTION_DMR_NETWORK) {
-		if (::strcmp(key, "RptAddress") == 0)
+		if (::strcmp(key, "Id") == 0)
+			m_dmrId = (unsigned int)::atoi(value);
+		else if (::strcmp(key, "RptAddress") == 0)
 			m_dmrRptAddress = value;
 		else if (::strcmp(key, "RptPort") == 0)
 			m_dmrRptPort = (unsigned int)::atoi(value);
@@ -183,6 +186,11 @@ unsigned int CConf::getLocalPort() const
 bool CConf::getDaemon() const
 {
 	return m_daemon;
+}
+
+unsigned int CConf::getDMRId() const
+{
+	return m_dmrId;
 }
 
 std::string CConf::getDMRRptAddress() const

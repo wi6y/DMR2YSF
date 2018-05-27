@@ -40,6 +40,7 @@ public:
   bool         getDaemon() const;
   
   // The DMR Network section
+  unsigned int getDMRId() const;
   std::string  getDMRRptAddress() const;
   unsigned int getDMRRptPort() const;
   std::string  getDMRLocalAddress() const;
@@ -65,6 +66,7 @@ private:
   unsigned int m_localPort;
   bool         m_daemon;
   
+  unsigned int m_dmrId;
   std::string  m_dmrRptAddress;
   unsigned int m_dmrRptPort;
   std::string  m_dmrLocalAddress;

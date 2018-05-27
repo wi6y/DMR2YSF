@@ -104,7 +104,9 @@ m_dmrFrames(0U),
 m_ysfFrames(0U),
 m_dmrinfo(false),
 m_config(NULL),
-m_configLen(0U)
+m_configLen(0U),
+m_srcid(0U),
+m_dstid(0U)
 {
 	::memset(m_ysfFrame, 0U, 200U);
 	::memset(m_dmrFrame, 0U, 50U);
@@ -198,6 +200,7 @@ int CDMR2YSF::run()
 #endif
 
 	m_callsign = m_conf.getCallsign();
+	m_defsrcid = m_conf.getDMRId();
 
 	in_addr dstAddress       = CUDPSocket::lookup(m_conf.getDstAddress());
 	unsigned int dstPort     = m_conf.getDstPort();
@@ -474,7 +477,7 @@ int CDMR2YSF::run()
 			if (!tx_dmrdata.isMissing()) {
 				networkWatchdog.start();
 
-				if(DataType == DT_TERMINATOR_WITH_LC) {
+				if(DataType == DT_TERMINATOR_WITH_LC && m_dmrFrames > 0U) {
 					LogMessage("DMR received end of voice transmission, %.1f seconds", float(m_dmrFrames) / 16.667F);
 
 					m_conv.putDMREOT();
@@ -490,6 +493,7 @@ int CDMR2YSF::run()
 					::memcpy(gps_buffer + 10U, dt2_temp, 10U);
 
 					m_netSrc = m_lookup->findCS(SrcId);
+					m_dstid = DstId;
 
 					m_netDst = (netflco == FLCO_GROUP ? "TG " : "") + m_lookup->findCS(DstId);
 
@@ -511,6 +515,7 @@ int CDMR2YSF::run()
 
 					if (!m_dmrinfo) {
 						m_netSrc = m_lookup->findCS(SrcId);
+						m_dstid = DstId;
 
 						m_netDst = (netflco == FLCO_GROUP ? "TG " : "") + m_lookup->findCS(DstId);
 
@@ -551,7 +556,7 @@ int CDMR2YSF::run()
 
 			if(ysfFrameType == TAG_HEADER) {
 				ysf_cnt = 0U;
-				LogMessage("YSF send Header");
+
 				::memcpy(m_ysfFrame + 0U, "YSFD", 4U);
 				::memcpy(m_ysfFrame + 4U, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
 				::memcpy(m_ysfFrame + 14U, m_netSrc.c_str(), YSF_CALLSIGN_LENGTH);
@@ -587,7 +592,7 @@ int CDMR2YSF::run()
 				ysfWatch.start();
 			}
 			else if (ysfFrameType == TAG_EOT) {
-				LogMessage("YSF send EOT");
+
 				::memcpy(m_ysfFrame + 0U, "YSFD", 4U);
 				::memcpy(m_ysfFrame + 4U, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
 				::memcpy(m_ysfFrame + 14U, m_netSrc.c_str(), YSF_CALLSIGN_LENGTH);
@@ -620,7 +625,7 @@ int CDMR2YSF::run()
 				m_ysfNetwork->write(m_ysfFrame);
 			}
 			else if (ysfFrameType == TAG_DATA) {
-				LogMessage("YSF send DATA");
+
 				CYSFFICH fich;
 				CYSFPayload ysfPayload;
 
