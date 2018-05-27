@@ -99,14 +99,14 @@ CDMR2YSF::CDMR2YSF(const std::string& configFile) :
 m_callsign(),
 m_conf(configFile),
 m_dmrNetwork(NULL),
+m_srcid(0U),
+m_dstid(0U),
 m_dmrLastDT(0U),
 m_dmrFrames(0U),
 m_ysfFrames(0U),
 m_dmrinfo(false),
 m_config(NULL),
-m_configLen(0U),
-m_srcid(0U),
-m_dstid(0U)
+m_configLen(0U)
 {
 	::memset(m_ysfFrame, 0U, 200U);
 	::memset(m_dmrFrame, 0U, 50U);
@@ -283,8 +283,6 @@ int CDMR2YSF::run()
 			if (valid) {
 				unsigned char fi = fich.getFI();
 				unsigned char dt = fich.getDT();
-				unsigned char fn = fich.getFN();
-				unsigned char ft = fich.getFT();
 
 				if ((::memcmp(buffer, "YSFD", 4U) == 0U) && (dt == YSF_DT_VD_MODE2)) {
 					CYSFPayload ysfPayload;
